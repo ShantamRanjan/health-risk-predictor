@@ -9,6 +9,7 @@ import Predict from './pages/Predict.jsx'
 import Reports from './pages/Reports.jsx'
 import Chat from './pages/Chat.jsx'
 import History from './pages/History.jsx'
+import Profile from './pages/Profile.jsx'
 
 function Protected({ children }) {
   const { user, loading } = useAuth()
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/reports" element={<Protected><Reports /></Protected>} />
           <Route path="/chat" element={<Protected><Chat /></Protected>} />
           <Route path="/history" element={<Protected><History /></Protected>} />
+          <Route path="/profile" element={<Protected><Profile /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import api from '../api/client'
 import RiskResult from '../components/RiskResult.jsx'
 import { LAB_LABELS, pdfPatchForDisease, recommendDisease } from '../api/labMapping'
+import { profilePatchForDisease } from '../api/profile'
+import { useAuth } from '../api/auth.jsx'
 
 const DISEASE_ICONS = {
   heart: '❤️', diabetes: '🩸', kidney: '🩺',
@@ -12,6 +14,7 @@ const DISEASE_ICONS = {
 export default function Predict() {
   const [params, setParams] = useSearchParams()
   const initialDisease = params.get('disease') || ''
+  const { user } = useAuth()
 
   const [meta, setMeta] = useState({})
   const [disease, setDisease] = useState(initialDisease)
@@ -24,6 +27,7 @@ export default function Predict() {
   const [labValues, setLabValues] = useState({})
   const [labSources, setLabSources] = useState({})
   const [autoFilledFields, setAutoFilledFields] = useState(new Set())
+  const [profileFilledFields, setProfileFilledFields] = useState(new Set())
   const [reportCount, setReportCount] = useState(0)
   const [autoPicked, setAutoPicked] = useState(null)  // disease key auto-selected from PDF
   const [refreshing, setRefreshing] = useState(false)
@@ -67,28 +71,50 @@ export default function Predict() {
     [disease, meta],
   )
 
-  // Apply PDF patch whenever disease/labs change
+  // Apply patches whenever disease, labs, or user profile change
   useEffect(() => {
     const init = {}
     features.forEach((f) => {
       if (f.type === 'category') init[f.name] = f.options?.[0] || ''
       else init[f.name] = ''
     })
-    const patch = pdfPatchForDisease(disease, labValues)
-    const filled = new Set()
-    Object.keys(patch).forEach((k) => {
-      init[k] = patch[k]
-      filled.add(k)
+
+    // 1. Profile patch (age, sex, BMI)
+    const profilePatch = profilePatchForDisease(user, disease)
+    const profileFilled = new Set()
+    Object.keys(profilePatch).forEach((k) => {
+      if (k in init) {
+        init[k] = profilePatch[k]
+        profileFilled.add(k)
+      }
     })
+
+    // 2. PDF patch — overrides profile if both have a value
+    const pdfPatch = pdfPatchForDisease(disease, labValues)
+    const pdfFilled = new Set()
+    Object.keys(pdfPatch).forEach((k) => {
+      if (k in init) {
+        init[k] = pdfPatch[k]
+        pdfFilled.add(k)
+        profileFilled.delete(k)  // PDF wins, drop the profile badge
+      }
+    })
+
     setValues(init)
-    setAutoFilledFields(filled)
+    setAutoFilledFields(pdfFilled)
+    setProfileFilledFields(profileFilled)
     setResult(null); setErr('')
-  }, [disease, features.length, labValues])
+  }, [disease, features.length, labValues, user])
 
   function setField(name, v) {
     setValues((prev) => ({ ...prev, [name]: v }))
     if (autoFilledFields.has(name)) {
       setAutoFilledFields((prev) => {
+        const next = new Set(prev); next.delete(name); return next
+      })
+    }
+    if (profileFilledFields.has(name)) {
+      setProfileFilledFields((prev) => {
         const next = new Set(prev); next.delete(name); return next
       })
     }
@@ -197,6 +223,15 @@ export default function Predict() {
               </div>
             </div>
           )}
+          {user && (!user.age || !user.sex) && (
+            <div className="mt-4 rounded-xl bg-brand-50 ring-1 ring-brand-200 px-4 py-3 text-sm flex items-center gap-3">
+              <span className="text-xl">👤</span>
+              <div className="flex-1 text-brand-900">
+                <span className="font-semibold">Save time:</span> add your age and sex once in your profile and we'll auto-fill them in every prediction.
+                <Link to="/profile" className="ml-1 underline font-medium hover:text-brand-700">Complete profile →</Link>
+              </div>
+            </div>
+          )}
 
           <div className="mt-6">
             <label className="label">Condition</label>
@@ -225,17 +260,24 @@ export default function Predict() {
 
           <form onSubmit={submit} className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {features.map((f) => {
-              const isAuto = autoFilledFields.has(f.name)
+              const isPdf = autoFilledFields.has(f.name)
+              const isProfile = profileFilledFields.has(f.name)
+              const isAuto = isPdf || isProfile
               return (
                 <div key={f.name}>
-                  <label className="label flex items-center justify-between">
-                    <span>
+                  <label className="label flex items-center justify-between gap-2">
+                    <span className="truncate">
                       {f.label}
                       {f.unit ? <span className="ml-1 text-slate-400 normal-case font-normal">({f.unit})</span> : null}
                     </span>
-                    {isAuto && (
-                      <span className="chip bg-mint-50 text-mint-700 ring-mint-200 normal-case tracking-normal">
+                    {isPdf && (
+                      <span className="chip bg-mint-50 text-mint-700 ring-mint-200 normal-case tracking-normal flex-shrink-0">
                         📄 from PDF
+                      </span>
+                    )}
+                    {isProfile && !isPdf && (
+                      <span className="chip bg-brand-50 text-brand-700 ring-brand-200 normal-case tracking-normal flex-shrink-0">
+                        👤 from profile
                       </span>
                     )}
                   </label>

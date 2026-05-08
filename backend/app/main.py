@@ -13,8 +13,16 @@ from app.ml.predictor import registry
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables (dev only — use Alembic in prod)
+    # Create tables and run safe column migrations
     Base.metadata.create_all(bind=engine)
+    try:
+        from scripts.init_db import _add_column_if_missing
+        _add_column_if_missing("users", "age", "INTEGER")
+        _add_column_if_missing("users", "sex", "VARCHAR(16)")
+        _add_column_if_missing("users", "height_cm", "REAL" if IS_SQLITE else "DOUBLE PRECISION")
+        _add_column_if_missing("users", "weight_kg", "REAL" if IS_SQLITE else "DOUBLE PRECISION")
+    except Exception as e:
+        print(f"Migration warning: {e}")
     # Load all ML models into memory
     registry.load_all()
     yield

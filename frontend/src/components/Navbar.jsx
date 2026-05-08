@@ -65,23 +65,23 @@ export default function Navbar() {
                 ))}
               </div>
               <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-                <div className="hidden lg:flex items-center gap-2">
+                <Link to="/profile" className="hidden lg:flex items-center gap-2 hover:bg-slate-100/70 rounded-lg px-2 py-1 transition-colors" title="Edit profile">
                   <div className="w-8 h-8 rounded-full bg-brand-gradient grid place-items-center text-white text-xs font-bold">
                     {(user.full_name || user.email)[0].toUpperCase()}
                   </div>
                   <span className="text-xs text-slate-600 max-w-[120px] truncate">
                     {user.full_name || user.email}
                   </span>
-                </div>
+                </Link>
                 <button onClick={onLogout} className="btn-ghost text-xs">Logout</button>
               </div>
             </nav>
 
             {/* Mobile: avatar + hamburger */}
             <div className="flex md:hidden items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-brand-gradient grid place-items-center text-white text-xs font-bold">
+              <Link to="/profile" aria-label="Profile" className="w-8 h-8 rounded-full bg-brand-gradient grid place-items-center text-white text-xs font-bold hover:scale-105 transition-transform">
                 {(user.full_name || user.email)[0].toUpperCase()}
-              </div>
+              </Link>
               <button
                 onClick={() => setOpen((v) => !v)}
                 aria-label="Toggle menu"
@@ -118,15 +118,16 @@ export default function Navbar() {
             }`}
           >
             <div className="max-w-6xl mx-auto px-4 py-3 space-y-1">
-              <div className="px-3 pb-2 pt-1 mb-1 border-b border-slate-100 flex items-center gap-2">
+              <Link to="/profile" className="px-3 pb-2 pt-1 mb-1 border-b border-slate-100 flex items-center gap-2 hover:bg-slate-50 rounded-lg">
                 <div className="w-9 h-9 rounded-full bg-brand-gradient grid place-items-center text-white text-sm font-bold">
                   {(user.full_name || user.email)[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold truncate">{user.full_name || 'Welcome'}</div>
-                  <div className="text-xs text-slate-500 truncate">{user.email}</div>
+                  <div className="text-xs text-slate-500 truncate">Tap to edit profile</div>
                 </div>
-              </div>
+                <span className="text-slate-400">›</span>
+              </Link>
               {links.map((l) => (
                 <NavLink
                   key={l.to}

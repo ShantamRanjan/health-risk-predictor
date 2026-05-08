@@ -31,10 +31,22 @@ export function AuthProvider({ children }) {
     setUser(r.data.user)
   }
 
-  async function signup(email, password, full_name) {
-    const r = await api.post('/auth/signup', { email, password, full_name })
+  async function signup(payload) {
+    const r = await api.post('/auth/signup', payload)
     localStorage.setItem('token', r.data.access_token)
     setUser(r.data.user)
+  }
+
+  async function updateProfile(patch) {
+    const r = await api.put('/auth/me', patch)
+    setUser(r.data)
+    return r.data
+  }
+
+  async function refreshUser() {
+    const r = await api.get('/auth/me')
+    setUser(r.data)
+    return r.data
   }
 
   function logout() {
@@ -43,7 +55,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthCtx.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthCtx.Provider value={{ user, loading, login, signup, logout, updateProfile, refreshUser }}>
       {children}
     </AuthCtx.Provider>
   )
