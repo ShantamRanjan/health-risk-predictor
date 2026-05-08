@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(python -m pip install --quiet --upgrade pip)",
+      "Bash(python -m pip install -r requirements.txt)",
+      "Bash(python -m ml_training.train)",
+      "Bash(python -c ' *)",
+      "Bash(python -m pip install --quiet \"email-validator==2.2.0\")",
+      "Bash(python -m scripts.init_db)"
+    ]
+  }
+}

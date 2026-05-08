@@ -1,0 +1,35 @@
+# Render Blueprint — deploys the FastAPI backend
+# https://render.com/docs/blueprint-spec
+#
+# After creating the service, set these env vars in the Render dashboard
+# (mark "DATABASE_URL" and "GROQ_API_KEY" as Secret):
+#   DATABASE_URL    = your Neon postgres connection string
+#   GROQ_API_KEY    = your Groq API key
+#   FRONTEND_ORIGIN = https://YOUR-APP.vercel.app
+
+services:
+  - type: web
+    name: health-risk-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python -m ml_training.train
+      python -m scripts.init_db
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true        # Render generates a random value once
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "10080"
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_API_KEY
+        sync: false                 # set in dashboard (secret)
+      - key: DATABASE_URL
+        sync: false                 # set in dashboard (Neon URL)
+      - key: FRONTEND_ORIGIN
+        sync: false                 # set in dashboard (Vercel URL)

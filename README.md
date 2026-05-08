@@ -1,0 +1,128 @@
+# AI Health Risk Predictor
+
+A serious full-stack ML project: predict the risk of **6 chronic diseases**, explain every score with **SHAP**, generate **doctor-style PDF reports**, parse **uploaded lab PDFs**, and chat with a **Groq-powered health & dietitian** assistant — all behind real auth and a clean React dashboard.
+
+## Stack
+
+| Layer        | Tech                                                                 |
+|--------------|----------------------------------------------------------------------|
+| ML           | scikit-learn (Gradient Boosting) + SHAP                              |
+| Backend      | FastAPI · SQLAlchemy · JWT auth · pdfplumber · ReportLab             |
+| Database     | SQLite (dev) / PostgreSQL (prod)                                     |
+| Chatbot      | Groq Cloud (Llama 3.3 70B) — health & nutrition topics only          |
+| Frontend     | React 18 · Vite · TailwindCSS · Recharts · React Router              |
+| Deployment   | Backend → Render · Frontend → Vercel · DB → Neon (free Postgres)     |
+
+## Diseases covered
+
+1. **Heart Disease** — UCI-style features (age, BP, cholesterol, ECG, etc.)
+2. **Type 2 Diabetes** — Pima-style (glucose, BMI, pedigree, etc.)
+3. **Chronic Kidney Disease** — albumin, creatinine, urea, hemoglobin…
+4. **Liver Disease** — bilirubin, ALT, AST, albumin, A/G ratio…
+5. **Stroke** — age, hypertension, smoking, glucose, BMI…
+6. **Hypertension** — BMI, salt, exercise, alcohol, stress, sleep…
+
+Each model returns:
+- `risk_score` (0..1) and `risk_level` (low / moderate / high)
+- **SHAP feature contributions** for full explainability
+- Personalised, evidence-based **lifestyle suggestions**
+
+## Project layout
+
+```
+.
+├── backend/
+│   ├── app/
+│   │   ├── api/         # auth, predict, reports, chat, pdf_report
+│   │   ├── core/        # config, database, security
+│   │   ├── ml/          # predictor, encoders, suggestions, saved_models/
+│   │   ├── models/      # SQLAlchemy models
+│   │   ├── schemas/     # Pydantic schemas
+│   │   ├── services/    # pdf_parser, pdf_generator, groq_chat
+│   │   └── main.py
+│   ├── ml_training/     # synthetic_data, disease_specs, train.py
+│   ├── requirements.txt
+│   ├── .env.example
+│   └── Dockerfile
+└── frontend/
+    ├── src/
+    │   ├── api/         # axios client + auth context
+    │   ├── components/  # Navbar, RiskResult chart
+    │   └── pages/       # Login, Signup, Dashboard, Predict, Reports, Chat, History
+    └── package.json
+```
+
+## Local setup
+
+### 1. Backend
+
+```bash
+cd backend
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
+pip install -r requirements.txt
+cp .env.example .env       # then fill in GROQ_API_KEY
+
+# Train all 6 ML models (saves to app/ml/saved_models/)
+python -m ml_training.train
+
+# Run the API
+uvicorn app.main:app --reload
+```
+
+API is now at <http://localhost:8000> · Swagger UI at <http://localhost:8000/docs>.
+
+### 2. Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173>. The Vite dev server proxies `/api/*` to the backend.
+
+### 3. Get a Groq API key
+
+Sign up free at <https://console.groq.com>, create a key, paste it into `backend/.env`:
+
+```
+GROQ_API_KEY=gsk_xxx...
+```
+
+## Deploy
+
+**Backend → Render**
+- Connect this repo, point service root to `backend/`, use the included `render.yaml`.
+- Add env vars: `GROQ_API_KEY`, `DATABASE_URL` (Neon Postgres), `FRONTEND_ORIGIN`.
+
+**Frontend → Vercel**
+- Connect this repo, set the project root to `frontend/`.
+- Edit `frontend/vercel.json` and replace `YOUR-RENDER-API.onrender.com` with your real Render URL.
+
+**Database → Neon**
+- Create a free Postgres database at <https://neon.tech>, copy the connection string into `DATABASE_URL`.
+
+## API quick reference
+
+| Method | Path                           | Description                                |
+|--------|--------------------------------|--------------------------------------------|
+| POST   | `/api/auth/signup`             | Create account                             |
+| POST   | `/api/auth/login`              | OAuth2 form login → JWT                    |
+| GET    | `/api/auth/me`                 | Current user                               |
+| GET    | `/api/predict/diseases`        | List models + feature specs (form schema)  |
+| POST   | `/api/predict`                 | Predict + SHAP explanation                 |
+| GET    | `/api/predict/history`         | All past predictions                       |
+| POST   | `/api/reports/upload`          | Upload + parse a lab PDF                   |
+| GET    | `/api/reports`                 | Your uploaded reports                      |
+| GET    | `/api/pdf/prediction/{id}`     | Doctor-style PDF download                  |
+| POST   | `/api/chat`                    | Health/diet chatbot                        |
+| GET    | `/api/chat/history`            | Past chat messages                         |
+
+## Disclaimer
+
+Outputs are generated by ML models trained on medically-plausible data and should be used **for informational purposes only**. They are **not** a substitute for professional medical advice, diagnosis, or treatment.
