@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import api from '../api/client'
 import { useAuth } from '../api/auth.jsx'
+import MarkdownMessage from '../components/MarkdownMessage.jsx'
 
 const SUGGESTED = [
   'Build a 7-day diabetic meal plan',
@@ -101,13 +102,15 @@ export default function Chat() {
               </div>
             )}
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
+              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 m.role === 'user'
-                  ? 'bg-brand-gradient text-white rounded-br-md shadow-soft'
+                  ? 'bg-brand-gradient text-white rounded-br-md shadow-soft whitespace-pre-wrap'
                   : 'bg-white ring-1 ring-slate-200 text-slate-800 rounded-bl-md'
               }`}
             >
-              {m.content}
+              {m.role === 'assistant'
+                ? <MarkdownMessage>{m.content}</MarkdownMessage>
+                : m.content}
             </div>
             {m.role === 'user' && (
               <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-slate-200 grid place-items-center text-xs font-bold text-slate-700">
