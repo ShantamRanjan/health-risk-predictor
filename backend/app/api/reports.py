@@ -12,7 +12,7 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.models import UploadedReport, User
-from app.services.pdf_parser import parse_pdf
+from app.services.pdf_parser import extract_all, parse_pdf
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -137,6 +137,50 @@ def aggregated_lab_values(
                 values[k] = v
                 sources[k] = {"report_id": r.id, "filename": r.filename}
     return {"values": values, "sources": sources}
+
+
+@router.post("/{report_id}/reparse")
+def reparse_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Re-runs extraction on a previously uploaded report.
+    Useful after upgrading the parser or when the original upload missed values.
+    """
+    row = (
+        db.query(UploadedReport)
+        .filter(UploadedReport.id == report_id, UploadedReport.user_id == user.id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    # If we still have the original PDF on disk, re-extract from it; else
+    # re-run the LLM/regex extractor on the cached text.
+    text = row.extracted_text or ""
+    if row.storage_path and os.path.exists(row.storage_path):
+        try:
+            parsed = parse_pdf(row.storage_path)
+            text = parsed["text"]
+            new_values = parsed["values"]
+        except Exception:
+            new_values = extract_all(text)
+    else:
+        new_values = extract_all(text)
+
+    row.extracted_text = (text or row.extracted_text or "")[:50000]
+    row.extracted_values = new_values
+    db.commit()
+    db.refresh(row)
+
+    return {
+        "id": row.id,
+        "filename": row.filename,
+        "extracted_values": new_values,
+        "count": len(new_values),
+    }
 
 
 @router.delete("/{report_id}")

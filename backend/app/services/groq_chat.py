@@ -1,18 +1,15 @@
 """
-Groq-powered health & dietitian chatbot.
+Groq-powered services:
+  1. Health & dietitian chatbot (scope-restricted)
+  2. Structured lab-value extractor for uploaded PDFs
 
-The system prompt strictly limits responses to:
-  - General health & wellness
-  - Nutrition & dieting
-  - Exercise & lifestyle
-  - Disease prevention & explanations
-  - Mental & sleep health
-
-Out-of-scope requests are politely refused.
+Out-of-scope chatbot requests are politely refused.
 """
 from __future__ import annotations
 
-from typing import List
+import json
+import re
+from typing import Any, Dict, List
 
 from groq import Groq
 
@@ -51,6 +48,49 @@ STYLE:
 """
 
 
+# ----------------------------------------------------------------------
+# Lab-value extraction
+# ----------------------------------------------------------------------
+EXTRACTION_SYSTEM = (
+    "You are a medical-data extraction engine. You read raw lab-report text and "
+    "return ONLY a JSON object with the requested numeric values. "
+    "Never explain, never add commentary, never use markdown — only valid JSON."
+)
+
+EXTRACTION_USER_TEMPLATE = """Extract the most recent value of each lab parameter below from the report text.
+- Use ONLY numeric values (no units, no commas, no ranges)
+- Use null if not present
+- For glucose, prefer fasting; otherwise random/post-prandial
+- For systolic_bp/diastolic_bp, parse from "120/80" style readings
+- Return EXACTLY this JSON shape, no extra keys:
+
+{{
+  "glucose": number|null,
+  "hba1c": number|null,
+  "total_cholesterol": number|null,
+  "hdl": number|null,
+  "ldl": number|null,
+  "triglycerides": number|null,
+  "creatinine": number|null,
+  "urea": number|null,
+  "hemoglobin": number|null,
+  "alt": number|null,
+  "ast": number|null,
+  "bilirubin_total": number|null,
+  "alk_phosphate": number|null,
+  "albumin": number|null,
+  "systolic_bp": number|null,
+  "diastolic_bp": number|null
+}}
+
+Report text:
+---
+{text}
+---
+
+Return only the JSON object."""
+
+
 class GroqChatService:
     def __init__(self):
         self._client: Groq | None = None
@@ -83,6 +123,65 @@ class GroqChatService:
             max_tokens=900,
         )
         return completion.choices[0].message.content or ""
+
+    # ------------------------------------------------------------------
+    # Structured extraction
+    # ------------------------------------------------------------------
+    def extract_lab_values(self, report_text: str) -> Dict[str, float]:
+        """
+        Send the raw PDF text to Groq and ask it to return a JSON object
+        of normalised lab values. Robust to nearly any report layout.
+        Returns {} on any failure (caller can fall back to regex).
+        """
+        text = (report_text or "").strip()
+        if len(text) < 10:
+            return {}
+        # Cap input — most lab reports < 8K chars; stays under model context
+        text = text[:8000]
+
+        messages = [
+            {"role": "system", "content": EXTRACTION_SYSTEM},
+            {"role": "user", "content": EXTRACTION_USER_TEMPLATE.format(text=text)},
+        ]
+
+        try:
+            # Try JSON-mode first (supported by most current Groq models)
+            try:
+                completion = self.client.chat.completions.create(
+                    model=settings.GROQ_MODEL,
+                    messages=messages,
+                    temperature=0.0,
+                    max_tokens=500,
+                    response_format={"type": "json_object"},
+                )
+            except Exception:
+                # Fallback if the model doesn't support response_format
+                completion = self.client.chat.completions.create(
+                    model=settings.GROQ_MODEL,
+                    messages=messages,
+                    temperature=0.0,
+                    max_tokens=500,
+                )
+
+            raw = completion.choices[0].message.content or "{}"
+            # Pull the first {...} block in case the model wrapped it
+            match = re.search(r"\{[\s\S]*\}", raw)
+            if not match:
+                return {}
+            data = json.loads(match.group(0))
+        except (json.JSONDecodeError, RuntimeError, Exception):
+            return {}
+
+        # Filter to numeric values only
+        out: Dict[str, float] = {}
+        for k, v in data.items():
+            if v is None:
+                continue
+            try:
+                out[k] = float(v)
+            except (TypeError, ValueError):
+                continue
+        return out
 
 
 groq_service = GroqChatService()

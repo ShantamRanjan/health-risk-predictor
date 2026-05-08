@@ -45,6 +45,22 @@ export default function Reports() {
     refresh()
   }
 
+  const [reparsingId, setReparsingId] = useState(null)
+  async function onReparse(id) {
+    setReparsingId(id)
+    try {
+      const r = await api.post(`/reports/${id}/reparse`)
+      // Patch this row in-place so the user sees the new values immediately
+      setReports((cur) => cur.map((row) =>
+        row.id === id ? { ...row, extracted_values: r.data.extracted_values } : row,
+      ))
+    } catch (e) {
+      alert(e?.response?.data?.detail || 'Re-extraction failed')
+    } finally {
+      setReparsingId(null)
+    }
+  }
+
   function onDrop(e) {
     e.preventDefault(); setDrag(false)
     if (e.dataTransfer.files?.[0]) uploadFile(e.dataTransfer.files[0])
@@ -161,9 +177,19 @@ export default function Reports() {
                       )}
                     </div>
                   </div>
-                  <button onClick={() => onDelete(r.id)} className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors">
-                    Delete
-                  </button>
+                  <div className="flex flex-col items-end gap-1">
+                    <button
+                      onClick={() => onReparse(r.id)}
+                      disabled={reparsingId === r.id}
+                      className="text-xs text-brand-600 hover:bg-brand-50 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                      title="Re-run extraction with the latest parser"
+                    >
+                      {reparsingId === r.id ? '⏳ Extracting…' : '🔄 Re-extract'}
+                    </button>
+                    <button onClick={() => onDelete(r.id)} className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors">
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

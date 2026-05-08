@@ -60,8 +60,31 @@ def extract_lab_values(text: str) -> Dict[str, Any]:
 
 
 def parse_pdf(path: str | Path) -> Dict[str, Any]:
+    """
+    Two-stage extraction:
+      1. Ask Groq to pull structured values (handles any layout).
+      2. Run regex over the same text and fill any keys the LLM missed.
+    Result: maximum recall across diverse report formats.
+    """
     text = extract_text(path)
     return {
         "text": text,
-        "values": extract_lab_values(text),
+        "values": extract_all(text),
     }
+
+
+def extract_all(text: str) -> Dict[str, Any]:
+    """Combine LLM + regex extraction. LLM wins on conflicts."""
+    # Lazy import to avoid a hard dependency loop / failure if Groq isn't configured
+    try:
+        from app.services.groq_chat import groq_service
+        llm_values = groq_service.extract_lab_values(text)
+    except Exception:
+        llm_values = {}
+
+    regex_values = extract_lab_values(text)
+
+    merged: Dict[str, Any] = {}
+    merged.update(regex_values)   # baseline
+    merged.update(llm_values)     # LLM overrides regex when both have a key
+    return merged
