@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import api from '../api/client'
 import RiskResult from '../components/RiskResult.jsx'
-import { pdfPatchForDisease } from '../api/labMapping'
+import { LAB_LABELS, pdfPatchForDisease, recommendDisease } from '../api/labMapping'
 
 const DISEASE_ICONS = {
   heart: '❤️', diabetes: '🩸', kidney: '🩺',
@@ -25,35 +25,55 @@ export default function Predict() {
   const [labSources, setLabSources] = useState({})
   const [autoFilledFields, setAutoFilledFields] = useState(new Set())
   const [reportCount, setReportCount] = useState(0)
+  const [autoPicked, setAutoPicked] = useState(null)  // disease key auto-selected from PDF
+  const [refreshing, setRefreshing] = useState(false)
 
-  // Load disease metadata + aggregated lab values once on mount
-  useEffect(() => {
-    api.get('/predict/diseases').then((r) => {
-      const m = r.data.metadata?.diseases || {}
+  async function loadFromBackend() {
+    setRefreshing(true)
+    try {
+      const [diseasesRes, aggRes, repRes] = await Promise.all([
+        api.get('/predict/diseases'),
+        api.get('/reports/aggregated').catch(() => ({ data: { values: {}, sources: {} } })),
+        api.get('/reports').catch(() => ({ data: [] })),
+      ])
+      const m = diseasesRes.data.metadata?.diseases || {}
       setMeta(m)
-      if (!initialDisease && Object.keys(m).length) setDisease(Object.keys(m)[0])
-    })
-    api.get('/reports/aggregated').then((r) => {
-      setLabValues(r.data?.values || {})
-      setLabSources(r.data?.sources || {})
-    }).catch(() => {})
-    api.get('/reports').then((r) => setReportCount((r.data || []).length)).catch(() => {})
-  }, [])
+      const labs = aggRes.data?.values || {}
+      setLabValues(labs)
+      setLabSources(aggRes.data?.sources || {})
+      setReportCount((repRes.data || []).length)
+
+      // Auto-pick disease ONLY if user hasn't chosen one via URL
+      if (!initialDisease && Object.keys(m).length) {
+        const rec = recommendDisease(labs)
+        if (rec) {
+          setDisease(rec.disease)
+          setAutoPicked(rec)
+        } else {
+          setDisease(Object.keys(m)[0])
+        }
+      } else if (initialDisease) {
+        setDisease(initialDisease)
+      }
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => { loadFromBackend() }, [])  // eslint-disable-line
 
   const features = useMemo(
     () => (disease && meta[disease] ? meta[disease].features : []),
     [disease, meta],
   )
 
-  // Reset values whenever disease changes — apply PDF auto-fill if available
+  // Apply PDF patch whenever disease/labs change
   useEffect(() => {
     const init = {}
     features.forEach((f) => {
       if (f.type === 'category') init[f.name] = f.options?.[0] || ''
       else init[f.name] = ''
     })
-
-    // Apply PDF auto-fill
     const patch = pdfPatchForDisease(disease, labValues)
     const filled = new Set()
     Object.keys(patch).forEach((k) => {
@@ -62,17 +82,14 @@ export default function Predict() {
     })
     setValues(init)
     setAutoFilledFields(filled)
-    setResult(null)
-    setErr('')
+    setResult(null); setErr('')
   }, [disease, features.length, labValues])
 
   function setField(name, v) {
     setValues((prev) => ({ ...prev, [name]: v }))
     if (autoFilledFields.has(name)) {
       setAutoFilledFields((prev) => {
-        const next = new Set(prev)
-        next.delete(name)
-        return next
+        const next = new Set(prev); next.delete(name); return next
       })
     }
   }
@@ -87,18 +104,49 @@ export default function Predict() {
     try {
       const r = await api.post('/predict', { disease, inputs })
       setResult(r.data)
-      // smooth scroll to result on mobile
       setTimeout(() => document.getElementById('risk-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
     } catch (e) {
       setErr(e?.response?.data?.detail || 'Prediction failed')
     } finally { setBusy(false) }
   }
 
+  const labCount = Object.keys(labValues).length
   const autoFilledCount = autoFilledFields.size
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in">
       <div className="lg:col-span-3 space-y-4">
+        {/* PDF SUMMARY PANEL */}
+        {labCount > 0 && (
+          <div className="card bg-gradient-to-br from-mint-50/80 to-brand-50/40 ring-mint-200">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📄</span>
+                  <h3 className="font-bold text-slate-900">From your reports</h3>
+                  <span className="chip bg-white text-mint-700 ring-mint-200">{labCount} values</span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  These values were extracted from your uploaded PDFs and used to pre-fill the form below.
+                </p>
+              </div>
+              <button onClick={loadFromBackend} disabled={refreshing} className="btn-ghost text-xs disabled:opacity-50">
+                {refreshing ? '⏳ Refreshing…' : '🔄 Refresh'}
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {Object.entries(labValues).map(([k, v]) => (
+                <div key={k} className="bg-white/80 backdrop-blur rounded-lg p-2 ring-1 ring-mint-200">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold truncate">
+                    {LAB_LABELS[k] || k.replace(/_/g, ' ')}
+                  </div>
+                  <div className="font-semibold text-slate-900 text-sm">{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="card">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div>
@@ -110,21 +158,41 @@ export default function Predict() {
             <span className="text-3xl hidden sm:block">{DISEASE_ICONS[disease] || '⚕️'}</span>
           </div>
 
-          {/* PDF banner */}
-          {reportCount > 0 && autoFilledCount > 0 && (
-            <div className="mt-4 rounded-xl bg-mint-50 ring-1 ring-mint-200 px-4 py-3 text-sm flex items-center gap-3 animate-fade-in">
-              <span className="text-xl">📄</span>
+          {/* AUTO-PICKED BANNER */}
+          {autoPicked && autoPicked.disease === disease && (
+            <div className="mt-4 rounded-xl bg-brand-50 ring-1 ring-brand-200 px-4 py-3 text-sm flex items-center gap-3">
+              <span className="text-xl">✨</span>
+              <div className="flex-1 text-brand-900">
+                <span className="font-semibold">Auto-selected {meta[autoPicked.disease]?.label}</span> based on
+                your reports ({autoPicked.matchCount} matching field{autoPicked.matchCount > 1 ? 's' : ''}).
+                <span className="ml-1 text-brand-700">Use the dropdown below to switch.</span>
+              </div>
+            </div>
+          )}
+
+          {/* AUTO-FILL STATUS BANNER */}
+          {reportCount > 0 && autoFilledCount > 0 && !autoPicked && (
+            <div className="mt-4 rounded-xl bg-mint-50 ring-1 ring-mint-200 px-4 py-3 text-sm flex items-center gap-3">
+              <span className="text-xl">✓</span>
               <div className="flex-1 text-mint-900">
                 <span className="font-semibold">{autoFilledCount} field{autoFilledCount > 1 ? 's' : ''}</span> pre-filled from your uploaded reports.
                 <span className="ml-1 text-mint-700">Edit any of them before submitting.</span>
               </div>
             </div>
           )}
+          {reportCount > 0 && autoFilledCount === 0 && (
+            <div className="mt-4 rounded-xl bg-amber-50 ring-1 ring-amber-200 px-4 py-3 text-sm">
+              <span className="font-semibold">⚠️ No fields matched this disease.</span> Try a different condition above
+              {reportCount > 0 && labCount === 0 && (
+                <> — or click <Link to="/reports" className="underline">Reports</Link> and hit <b>🔄 Re-extract</b> on your file to pull values with the upgraded parser.</>
+              )}
+            </div>
+          )}
           {reportCount === 0 && (
             <div className="mt-4 rounded-xl bg-amber-50 ring-1 ring-amber-200 px-4 py-3 text-sm flex items-center gap-3">
               <span className="text-xl">💡</span>
               <div className="flex-1 text-amber-900">
-                <span className="font-semibold">Tip:</span> upload a lab report and the form will auto-fill values like glucose, cholesterol, creatinine.
+                <span className="font-semibold">Tip:</span> upload a lab report and the form will auto-fill values, plus we'll auto-select the most relevant disease.
                 <Link to="/reports" className="ml-1 underline font-medium hover:text-amber-700">Upload now →</Link>
               </div>
             </div>
@@ -135,11 +203,20 @@ export default function Predict() {
             <select
               className="input"
               value={disease}
-              onChange={(e) => { setDisease(e.target.value); setParams({ disease: e.target.value }) }}
+              onChange={(e) => {
+                setDisease(e.target.value)
+                setParams({ disease: e.target.value })
+                setAutoPicked(null)  // user manually changed it
+              }}
             >
-              {Object.entries(meta).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
+              {Object.entries(meta).map(([k, v]) => {
+                const matchCount = Object.keys(pdfPatchForDisease(k, labValues)).length
+                return (
+                  <option key={k} value={k}>
+                    {v.label}{matchCount > 0 ? `  •  ${matchCount} field${matchCount > 1 ? 's' : ''} from PDF` : ''}
+                  </option>
+                )
+              })}
             </select>
             {meta[disease]?.description && (
               <p className="text-xs text-slate-500 mt-2">{meta[disease].description}</p>
@@ -149,7 +226,6 @@ export default function Predict() {
           <form onSubmit={submit} className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {features.map((f) => {
               const isAuto = autoFilledFields.has(f.name)
-              const source = isAuto ? labSources[Object.entries(meta[disease]?.features || []).reduce(() => null, null) || ''] : null
               return (
                 <div key={f.name}>
                   <label className="label flex items-center justify-between">
@@ -164,7 +240,11 @@ export default function Predict() {
                     )}
                   </label>
                   {f.type === 'category' ? (
-                    <select className="input" value={values[f.name] ?? ''} onChange={(e) => setField(f.name, e.target.value)}>
+                    <select
+                      className={`input ${isAuto ? 'input-prefilled' : ''}`}
+                      value={values[f.name] ?? ''}
+                      onChange={(e) => setField(f.name, e.target.value)}
+                    >
                       {f.options.map((opt) => (
                         <option key={opt} value={opt}>{opt.replace(/_/g, ' ')}</option>
                       ))}
@@ -177,6 +257,7 @@ export default function Predict() {
                       required
                       min={f.min ?? undefined}
                       max={f.max ?? undefined}
+                      placeholder={f.min != null && f.max != null ? `${f.min}–${f.max}` : 'Enter value'}
                       value={values[f.name] ?? ''}
                       onChange={(e) => setField(f.name, e.target.value)}
                     />
@@ -193,9 +274,7 @@ export default function Predict() {
             <div className="sm:col-span-2">
               <button className="btn-primary w-full text-base py-3" disabled={busy}>
                 {busy ? (
-                  <>
-                    <span className="animate-pulse-soft">●</span> Analyzing your data…
-                  </>
+                  <><span className="animate-pulse-soft">●</span> Analyzing your data…</>
                 ) : (
                   <>◎ Predict risk</>
                 )}
