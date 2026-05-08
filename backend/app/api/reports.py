@@ -108,6 +108,37 @@ def list_reports(
     ]
 
 
+@router.get("/aggregated")
+def aggregated_lab_values(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Returns the most-recent lab value the user has across all their uploaded
+    reports. Used by the Predict page to pre-fill matching form fields.
+
+    Output:
+    {
+      "values": {"glucose": 142.0, "creatinine": 1.1, ...},
+      "sources": {"glucose": {"report_id": 7, "filename": "labs_oct_2025.pdf"}, ...}
+    }
+    """
+    rows = (
+        db.query(UploadedReport)
+        .filter(UploadedReport.user_id == user.id)
+        .order_by(UploadedReport.uploaded_at.desc())
+        .all()
+    )
+    values: dict = {}
+    sources: dict = {}
+    for r in rows:  # most-recent first; only set the key if not already set
+        for k, v in (r.extracted_values or {}).items():
+            if k not in values:
+                values[k] = v
+                sources[k] = {"report_id": r.id, "filename": r.filename}
+    return {"values": values, "sources": sources}
+
+
 @router.delete("/{report_id}")
 def delete_report(
     report_id: int,

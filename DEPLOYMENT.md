@@ -9,6 +9,7 @@ Step-by-step guide to host the entire stack for **free** on:
 | Frontend    | **Vercel** (Static)     | 100 GB bandwidth          |
 | LLM         | **Groq Cloud**          | Generous free tier        |
 
+
 Total cost: **$0**.
 
 ---

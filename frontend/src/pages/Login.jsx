@@ -22,25 +22,67 @@ export default function Login() {
   }
 
   return (
-    <div className="max-w-md mx-auto card mt-12">
-      <h1 className="text-2xl font-bold mb-6">Welcome back</h1>
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label className="label">Email</label>
-          <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+    <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto items-center mt-4 lg:mt-12 animate-fade-in">
+      {/* Left: branding */}
+      <div className="hidden lg:block space-y-6 pr-8">
+        <div className="w-14 h-14 rounded-2xl bg-brand-gradient grid place-items-center text-white text-2xl shadow-card">
+          ✚
         </div>
-        <div>
-          <label className="label">Password</label>
-          <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        {err && <div className="text-sm text-red-600">{err}</div>}
-        <button className="btn-primary w-full" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-slate-500">
-        No account? <Link className="text-brand-600 hover:underline" to="/signup">Create one</Link>
-      </p>
+        <h1 className="text-4xl font-extrabold font-display leading-tight">
+          Your AI-powered <br />
+          <span className="bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent">
+            health companion
+          </span>
+        </h1>
+        <p className="text-slate-600 leading-relaxed">
+          Predict your risk for 6 chronic diseases, upload lab reports for instant analysis, and chat with a science-backed dietitian — all in one place.
+        </p>
+        <ul className="space-y-2 text-sm text-slate-700">
+          <li className="flex items-center gap-2"><span className="text-mint-500">✓</span> 6 ML models with SHAP explainability</li>
+          <li className="flex items-center gap-2"><span className="text-mint-500">✓</span> Auto-extract lab values from PDFs</li>
+          <li className="flex items-center gap-2"><span className="text-mint-500">✓</span> Doctor-style PDF report download</li>
+          <li className="flex items-center gap-2"><span className="text-mint-500">✓</span> Groq-powered nutrition assistant</li>
+        </ul>
+      </div>
+
+      {/* Right: form */}
+      <div className="card">
+        <h2 className="text-2xl font-extrabold font-display mb-1">Welcome back</h2>
+        <p className="text-sm text-slate-500 mb-6">Sign in to access your health dashboard.</p>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label className="label">Email</label>
+            <input
+              className="input"
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">Password</label>
+            <input
+              className="input"
+              type="password"
+              required
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {err && (
+            <div className="rounded-xl bg-red-50 ring-1 ring-red-200 px-4 py-3 text-sm text-red-700">{err}</div>
+          )}
+          <button className="btn-primary w-full text-base py-3" disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+        <p className="mt-5 text-sm text-slate-500 text-center">
+          New here? <Link className="text-brand-600 hover:underline font-semibold" to="/signup">Create an account</Link>
+        </p>
+      </div>
     </div>
   )
 }
