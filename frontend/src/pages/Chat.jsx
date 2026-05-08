@@ -56,21 +56,21 @@ export default function Chat() {
   const userInitial = (user?.full_name || user?.email || '?')[0].toUpperCase()
 
   return (
-    <div className="card flex flex-col h-[78vh] p-0 overflow-hidden animate-fade-in">
-      <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200/60 bg-white/60 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-mint-gradient grid place-items-center text-xl shadow-soft">
+    <div className="card flex flex-col h-[calc(100dvh-7rem)] sm:h-[78vh] min-h-[480px] !p-0 overflow-hidden animate-fade-in">
+      <header className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200/60 bg-white/60 backdrop-blur">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl bg-mint-gradient grid place-items-center text-lg sm:text-xl shadow-soft">
             ✦
           </div>
-          <div>
-            <h1 className="text-lg font-bold font-display">MedAdvisor</h1>
-            <p className="text-xs text-slate-500">Your AI dietitian & health coach · Powered by Groq</p>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold font-display leading-tight">MedAdvisor</h1>
+            <p className="text-[11px] sm:text-xs text-slate-500 truncate">Your AI dietitian · Powered by Groq</p>
           </div>
         </div>
-        <button className="btn-ghost text-xs" onClick={clearAll}>Clear history</button>
+        <button className="btn-ghost text-xs flex-shrink-0" onClick={clearAll}>Clear</button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-gradient-to-b from-slate-50/30 to-transparent">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 space-y-3 sm:space-y-4 bg-gradient-to-b from-slate-50/30 to-transparent">
         {messages.length === 0 && (
           <div className="max-w-md mx-auto text-center mt-8">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-mint-gradient grid place-items-center text-3xl shadow-card mb-4 animate-pulse-soft">
@@ -141,7 +141,7 @@ export default function Chat() {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); send(input) }} className="px-6 py-4 border-t border-slate-200/60 bg-white/60 backdrop-blur">
+      <form onSubmit={(e) => { e.preventDefault(); send(input) }} className="px-3 sm:px-6 py-3 sm:py-4 border-t border-slate-200/60 bg-white/60 backdrop-blur">
         <div className="flex gap-2">
           <input
             className="input flex-1"
@@ -150,7 +150,7 @@ export default function Chat() {
             onChange={(e) => setInput(e.target.value)}
             disabled={busy}
           />
-          <button className="btn-primary" disabled={busy || !input.trim()}>
+          <button className="btn-primary px-4 sm:px-5 flex-shrink-0" disabled={busy || !input.trim()}>
             Send
           </button>
         </div>

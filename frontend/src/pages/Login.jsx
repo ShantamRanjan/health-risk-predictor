@@ -22,7 +22,7 @@ export default function Login() {
   }
 
   return (
-    <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto items-center mt-4 lg:mt-12 animate-fade-in">
+    <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto items-center mt-2 lg:mt-12 animate-fade-in">
       {/* Left: branding */}
       <div className="hidden lg:block space-y-6 pr-8">
         <div className="w-14 h-14 rounded-2xl bg-brand-gradient grid place-items-center text-white text-2xl shadow-card">

@@ -36,18 +36,18 @@ export default function History() {
   const filtered = filter === 'all' ? rows : rows.filter((r) => r.risk_level === filter)
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-end justify-between flex-wrap gap-3">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex items-start sm:items-end justify-between flex-col sm:flex-row gap-3">
         <div>
-          <h1 className="text-3xl font-extrabold font-display">Prediction history</h1>
-          <p className="text-slate-500 mt-1">Every prediction you've made — securely saved to your account.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display">Prediction history</h1>
+          <p className="text-sm text-slate-500 mt-1">Every prediction you've made — securely saved to your account.</p>
         </div>
-        <div className="flex items-center gap-1 rounded-xl bg-white ring-1 ring-slate-200 p-1">
+        <div className="flex items-center gap-1 rounded-xl bg-white ring-1 ring-slate-200 p-1 self-stretch sm:self-auto overflow-x-auto">
           {['all', 'low', 'moderate', 'high'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors capitalize ${
+              className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors capitalize whitespace-nowrap ${
                 filter === f ? 'bg-brand-gradient text-white shadow-soft' : 'text-slate-600 hover:bg-slate-100'
               }`}
             >

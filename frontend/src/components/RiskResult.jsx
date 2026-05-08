@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import api from '../api/client'
 
@@ -39,6 +40,15 @@ export default function RiskResult({ result }) {
     feature: c.feature.replace(/_/g, ' '),
     shap: Number(c.shap_value.toFixed(3)),
   }))
+
+  // Adjust chart Y-axis label width for narrow screens
+  const [yWidth, setYWidth] = useState(110)
+  useEffect(() => {
+    const update = () => setYWidth(window.innerWidth < 380 ? 70 : window.innerWidth < 640 ? 85 : 110)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   async function downloadPdf() {
     if (!result.id) return
@@ -98,7 +108,7 @@ export default function RiskResult({ result }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} layout="vertical" margin={{ left: 5, right: 10 }}>
               <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <YAxis dataKey="feature" type="category" width={110} tick={{ fontSize: 11, fill: '#475569' }} />
+              <YAxis dataKey="feature" type="category" width={yWidth} tick={{ fontSize: 11, fill: '#475569' }} />
               <Tooltip
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
                 formatter={(v) => [v, 'SHAP impact']}

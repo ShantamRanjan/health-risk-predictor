@@ -35,24 +35,24 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white p-8 sm:p-10 shadow-card">
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-brand-gradient text-white p-5 sm:p-10 shadow-card">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.25),transparent_50%)] pointer-events-none" />
         <div className="relative">
-          <div className="text-xs uppercase tracking-widest opacity-80 mb-2">Welcome back</div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold font-display">
-            Hello{user?.full_name ? `, ${user.full_name}` : ''} 👋
+          <div className="text-[10px] sm:text-xs uppercase tracking-widest opacity-80 mb-1.5 sm:mb-2">Welcome back</div>
+          <h1 className="text-2xl sm:text-4xl font-extrabold font-display leading-tight">
+            Hello{user?.full_name ? `, ${user.full_name.split(' ')[0]}` : ''} 👋
           </h1>
-          <p className="mt-2 max-w-xl text-white/90">
+          <p className="mt-2 max-w-xl text-sm sm:text-base text-white/90">
             Track your AI-driven health risk insights, upload lab reports for instant analysis, and chat with your nutrition coach.
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link to="/predict" className="bg-white/15 hover:bg-white/25 backdrop-blur rounded-xl px-4 py-2 text-sm font-semibold transition-colors">
+          <div className="mt-4 sm:mt-5 flex flex-wrap gap-2">
+            <Link to="/predict" className="bg-white/15 hover:bg-white/25 backdrop-blur rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-colors">
               ◎ New prediction
             </Link>
-            <Link to="/reports" className="bg-white/15 hover:bg-white/25 backdrop-blur rounded-xl px-4 py-2 text-sm font-semibold transition-colors">
+            <Link to="/reports" className="bg-white/15 hover:bg-white/25 backdrop-blur rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-colors">
               ⎙ Upload report
             </Link>
-            <Link to="/chat" className="bg-white/15 hover:bg-white/25 backdrop-blur rounded-xl px-4 py-2 text-sm font-semibold transition-colors">
+            <Link to="/chat" className="bg-white/15 hover:bg-white/25 backdrop-blur rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-colors">
               ✦ Ask MedAdvisor
             </Link>
           </div>
@@ -129,11 +129,11 @@ export default function Dashboard() {
 
 function Stat({ label, value, accent }) {
   return (
-    <div className="card animate-count-up">
+    <div className="card animate-count-up !p-3 sm:!p-6">
       <div className={`inline-block rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${accent}`}>
         {label}
       </div>
-      <div className="mt-2 text-3xl font-extrabold font-display text-slate-900">{value}</div>
+      <div className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold font-display text-slate-900">{value}</div>
     </div>
   )
 }

@@ -114,8 +114,8 @@ export default function Predict() {
   const autoFilledCount = autoFilledFields.size
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in">
-      <div className="lg:col-span-3 space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 animate-fade-in">
+      <div className="lg:col-span-3 space-y-4 min-w-0">
         {/* PDF SUMMARY PANEL */}
         {labCount > 0 && (
           <div className="card bg-gradient-to-br from-mint-50/80 to-brand-50/40 ring-mint-200">
@@ -284,7 +284,7 @@ export default function Predict() {
         </div>
       </div>
 
-      <div className="lg:col-span-2" id="risk-result">
+      <div className="lg:col-span-2 min-w-0" id="risk-result">
         {result ? (
           <RiskResult result={result} />
         ) : (

@@ -67,10 +67,10 @@ export default function Reports() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <header>
-        <h1 className="text-3xl font-extrabold font-display">Health Reports</h1>
-        <p className="text-slate-500 mt-1">
+        <h1 className="text-2xl sm:text-3xl font-extrabold font-display">Health Reports</h1>
+        <p className="text-sm text-slate-500 mt-1">
           Upload your lab PDFs — we extract values like glucose, cholesterol, creatinine, and use them to auto-fill predictions.
         </p>
       </header>
@@ -82,15 +82,15 @@ export default function Reports() {
         onDrop={onDrop}
         className={`card transition-all ${drag ? 'ring-2 ring-brand-400 bg-brand-50/50' : ''}`}
       >
-        <div className="flex flex-col items-center text-center py-6">
-          <div className="w-16 h-16 rounded-2xl bg-brand-gradient grid place-items-center text-3xl text-white shadow-card mb-3">
+        <div className="flex flex-col items-center text-center py-4 sm:py-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-brand-gradient grid place-items-center text-2xl sm:text-3xl text-white shadow-card mb-3">
             ⎙
           </div>
-          <h3 className="font-bold text-slate-700">Drop a lab report PDF here</h3>
-          <p className="text-sm text-slate-500 mt-1 max-w-md">
+          <h3 className="font-bold text-slate-700 text-sm sm:text-base">Drop a lab report PDF here</h3>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-md px-2">
             We'll automatically extract glucose, lipid panel, kidney/liver markers, blood pressure, and more.
           </p>
-          <label className="mt-4 btn-primary cursor-pointer">
+          <label className="mt-4 btn-primary cursor-pointer text-sm">
             <input
               ref={fileRef}
               type="file"
