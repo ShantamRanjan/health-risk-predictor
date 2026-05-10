@@ -60,6 +60,7 @@ def root():
     }
 
 
+@app.get("/api/health")
 @app.get("/health")
 def healthcheck():
     """Readiness probe — verifies DB and ML models are usable."""

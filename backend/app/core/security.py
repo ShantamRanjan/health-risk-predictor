@@ -17,7 +17,8 @@ def _prepare(password: str) -> bytes:
 
 
 def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt(rounds=12)
+    # 10 rounds = OWASP-recommended baseline, ~4x faster than 12 on commodity hardware.
+    salt = bcrypt.gensalt(rounds=10)
     return bcrypt.hashpw(_prepare(password), salt).decode("utf-8")
 
 

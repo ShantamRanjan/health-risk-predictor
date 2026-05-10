@@ -1,14 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../api/auth.jsx'
+import api from '../api/client'
 
 export default function Login() {
   const { login } = useAuth()
   const nav = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [slow, setSlow] = useState(false)
+
+  // Warm the Render free-tier dyno the moment the page mounts, so by the time
+  // the user submits, the cold start is already in progress (or done).
+  useEffect(() => { api.get('/health').catch(() => {}) }, [])
+
+  useEffect(() => {
+    if (!busy) { setSlow(false); return }
+    const t = setTimeout(() => setSlow(true), 4000)
+    return () => clearTimeout(t)
+  }, [busy])
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -63,14 +76,24 @@ export default function Login() {
           </div>
           <div>
             <label className="label">Password</label>
-            <input
-              className="input"
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                className="input pr-20"
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute inset-y-0 right-3 my-auto h-7 px-2 text-xs font-semibold text-brand-600 hover:text-brand-700"
+                tabIndex={-1}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           {err && (
             <div className="rounded-xl bg-red-50 ring-1 ring-red-200 px-4 py-3 text-sm text-red-700">{err}</div>
@@ -78,6 +101,11 @@ export default function Login() {
           <button className="btn-primary w-full text-base py-3" disabled={busy}>
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
+          {slow && (
+            <p className="text-xs text-slate-500 text-center -mt-1">
+              Server waking up — this can take up to 30 seconds on first visit. Hang tight…
+            </p>
+          )}
         </form>
         <p className="mt-5 text-sm text-slate-500 text-center">
           New here? <Link className="text-brand-600 hover:underline font-semibold" to="/signup">Create an account</Link>

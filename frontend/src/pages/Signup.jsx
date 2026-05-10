@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../api/auth.jsx'
+import api from '../api/client'
 
 export default function Signup() {
   const { signup } = useAuth()
@@ -9,8 +10,19 @@ export default function Signup() {
     email: '', password: '', full_name: '',
     age: '', sex: '',
   })
+  const [showPassword, setShowPassword] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [slow, setSlow] = useState(false)
+
+  // Pre-warm Render free-tier dyno while the user fills the form.
+  useEffect(() => { api.get('/health').catch(() => {}) }, [])
+
+  useEffect(() => {
+    if (!busy) { setSlow(false); return }
+    const t = setTimeout(() => setSlow(true), 4000)
+    return () => clearTimeout(t)
+  }, [busy])
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })) }
 
@@ -72,7 +84,25 @@ export default function Signup() {
           </div>
           <div>
             <label className="label">Password</label>
-            <input className="input" type="password" required minLength={6} placeholder="At least 6 characters" value={form.password} onChange={(e) => set('password', e.target.value)} />
+            <div className="relative">
+              <input
+                className="input pr-20"
+                type={showPassword ? 'text' : 'password'}
+                required
+                minLength={6}
+                placeholder="At least 6 characters"
+                value={form.password}
+                onChange={(e) => set('password', e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute inset-y-0 right-3 my-auto h-7 px-2 text-xs font-semibold text-brand-600 hover:text-brand-700"
+                tabIndex={-1}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           {/* Optional demographic fields */}
@@ -107,6 +137,11 @@ export default function Signup() {
           <button className="btn-primary w-full text-base py-3" disabled={busy}>
             {busy ? 'Creating…' : 'Create account'}
           </button>
+          {slow && (
+            <p className="text-xs text-slate-500 text-center -mt-1">
+              Server waking up — this can take up to 30 seconds on first visit. Hang tight…
+            </p>
+          )}
         </form>
         <p className="mt-5 text-sm text-slate-500 text-center">
           Already have an account? <Link className="text-brand-600 hover:underline font-semibold" to="/login">Sign in</Link>
